@@ -83,6 +83,7 @@ HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'xapian_backend.XapianEngine',
         'PATH': os.path.join(BASE_DIR, 'xapian_index'),
+        'HAYSTACK_XAPIAN_STEMMING_STRATEGY': 'STEM_NONE',
     },
 }
 

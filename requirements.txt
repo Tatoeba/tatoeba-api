@@ -1,0 +1,13 @@
+Django==1.8.3
+django-haystack==2.4.0
+-e git+https://github.com/django-tastypie/django-tastypie.git@1e1aff3dd4dcd21669e9c68bd7681253b286b856#egg=django_tastypie-master
+MySQL-python==1.2.5
+nltk==3.0.3
+py==1.4.30
+pytest==2.7.2
+pytest-django==2.8.0
+python-dateutil==2.4.2
+python-mimeparse==0.1.4
+pytz==2015.4
+six==1.9.0
+-e git+https://github.com/notanumber/xapian-haystack.git@a3a3a4e7cfba3e2e1be3a42abf59edd29ea03c05#egg=xapian_haystack-master

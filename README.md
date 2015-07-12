@@ -18,7 +18,7 @@ This is a bridge project between the current website's schema and python/django.
     ```
   - Then get the python dependencies with:
     ```sh
-    pip install -r requirements/basic.txt
+    pip install -r requirements.txt
     ```
 
 - Configuration:
