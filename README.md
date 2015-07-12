@@ -52,5 +52,5 @@ This is a bridge project between the current website's schema and python/django.
   it should appear on localhost:8000
 
   ```sh
-  curl -s 127.0.0.1:8000/api/sentences_search/?sentence_text="what"&format=json
+  curl -s 127.0.0.1:8000/0.1/sentences_search/?sentence_text="what"&format=json
   ```

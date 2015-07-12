@@ -5,7 +5,7 @@ from .api import (
     )
 
 
-api = Api(api_name='api')
+api = Api(api_name='0.1')
 api.register(SentencesResource())
 api.register(SentencesSearchResource())
 
