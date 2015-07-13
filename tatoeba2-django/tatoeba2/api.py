@@ -39,7 +39,11 @@ class SentencesSearchResource(BaseSearchResource):
     class Meta:
         resource_name = 'sentences_search'
         index = SentencesIndex()
-        autoquery_fields = ['sentence_text', 'sentence_text_stemmed']
+        autoquery_fields = [
+            'sentence_text', 'sentence_text_stemmed',
+            'tags', 'lang', 'owner',
+            'trans_langs', 'trans_owners'
+            ]
         stem_fields = ['sentence_text_stemmed']
         allowed_methods = ['get']
 

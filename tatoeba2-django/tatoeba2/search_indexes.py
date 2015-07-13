@@ -2,22 +2,32 @@ from haystack import indexes
 from datetime import datetime
 from .utils import now, stemmer
 from .models import (
-    Sentences,
+    Sentences, Users, SentencesTranslations, UsersLanguages, Tags,
+    TagsSentences
     )
+from collections import defaultdict
 
 
 class SentencesIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True)
     id = indexes.IntegerField(model_attr='id')
-    sentence_text = indexes.CharField(model_attr='text')
+    sentence_text = indexes.CharField()
     sentence_text_stemmed = indexes.CharField()
-    lang = indexes.CharField(model_attr='lang', default='und')
-    user_id = indexes.IntegerField(model_attr='user_id', default=0)
+    lang = indexes.CharField(default='und')
+    owner = indexes.CharField(default='')
+    owner_is_native = indexes.BooleanField(default=False)
+    is_orphan = indexes.BooleanField(default=True)
+    tags = indexes.CharField(default='')
+    is_tagged = indexes.BooleanField(default=False)
     created = indexes.DateTimeField(model_attr='created', default=datetime(1,1,1))
     modified = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
-    hasaudio = indexes.CharField(model_attr='hasaudio', default='no')
-    lang_id = indexes.IntegerField(model_attr='lang_id')
-    correctness = indexes.IntegerField(model_attr='correctness')
+    has_audio = indexes.BooleanField(default=False)
+    is_unapproved = indexes.BooleanField(default=False)
+    trans_langs = indexes.CharField(default='')
+    trans_owners = indexes.CharField(default='')
+    trans_has_orphan = indexes.BooleanField(default=False)
+    trans_has_audio = indexes.BooleanField(default=False)
+    trans_is_unapproved = indexes.BooleanField(default=False)
 
     def get_model(self):
         return Sentences
@@ -33,8 +43,66 @@ class SentencesIndex(indexes.SearchIndex, indexes.Indexable):
 
         text = object.text.decode('utf-8', 'ignore')
         lang = object.lang
+        user = Users.objects.filter(id=object.user_id)
+        user = user[0] if user else None
+        owner = user.username if user else ''
+        owner = owner.decode('utf-8', 'ignore')
+        is_orphan = not bool(owner)
+        owner_is_native = bool(
+            UsersLanguages.objects.filter(
+                of_user_id=object.user_id, by_user_id=object.user_id,
+                language_code=lang, level=5
+                ).values_list('language_code', flat=True)
+            )
+        tags = Tags.objects.filter(
+                    id__in=TagsSentences.objects\
+                               .filter(sentence_id=object.id)\
+                               .values_list('tag_id', flat=True)\
+                    ).values_list('name', flat=True)
+        tags = list(set(tags))
+        tags = ' | '.join(tags) if tags else ''
+        tags = tags.decode('utf-8', 'ignore')
+        is_tagged = bool(tags)
+        is_unapproved = bool(object.correctness == -1)
+        has_audio = bool(object.hasaudio == 'shtooka' or object.hasaudio == 'from_users')
+
+        direct_props = list(Sentences.objects.raw("""
+                        SELECT `s`.`id`, `s`.`user_id`, `s`.`lang`, `s`.`correctness`, `s`.`hasaudio`
+                        FROM `sentences` as `s`
+                        JOIN `sentences_translations` as `t`
+                        ON `t`.`translation_id` = `s`.id
+                        WHERE `t`.`sentence_id` = %s ;
+                        """, [object.id]))
+        if direct_props:
+            props = defaultdict(set)
+            for prop in direct_props:
+                for key in ('user_id', 'lang', 'correctness', 'hasaudio'):
+                    props[key].add(getattr(prop, key))
+
+            trans_langs = ' | '.join(list(props['lang']))
+            trans_is_unapproved = -1 in props['correctness']
+            trans_has_orphan = None in props['user_id']
+            if trans_has_orphan: props['user_id'].remove(None)
+            users = list(props['user_id'])
+            users = Users.objects.filter(id__in=users).values_list('username', flat=True)
+            trans_owners = ' | '.join(users)
+            trans_has_audio = 'shtooka' in props['hasaudio'] or \
+                              'from_users' in props['hasaudio']
+
+            self.prepared_data['trans_langs'] = trans_langs
+            self.prepared_data['trans_owners'] = trans_owners
+            self.prepared_data['trans_has_audio'] = trans_has_audio
+            self.prepared_data['trans_is_unapproved'] = trans_is_unapproved
+            self.prepared_data['trans_has_orphan'] = trans_has_orphan
 
         self.prepared_data['sentence_text'] = text
         self.prepared_data['sentence_text_stemmed'] = stemmer.stem(text, lang)
+        self.prepared_data['owner'] = owner
+        self.prepared_data['is_orphan'] = is_orphan
+        self.prepared_data['owner_is_native'] = owner_is_native
+        self.prepared_data['tags'] = tags
+        self.prepared_data['is_tagged'] = is_tagged
+        self.prepared_data['is_unapproved'] = is_unapproved
+        self.prepared_data['has_audio'] = has_audio
 
         return self.prepared_data
