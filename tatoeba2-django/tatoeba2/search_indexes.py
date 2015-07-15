@@ -3,7 +3,7 @@ from datetime import datetime
 from .utils import now, stemmer, uclean
 from .models import (
     Sentences, Users, SentencesTranslations, UsersLanguages, Tags,
-    TagsSentences, SentencesLists
+    TagsSentences, SentencesLists, SentenceComments
     )
 from collections import defaultdict
 
@@ -172,5 +172,37 @@ class SentencesListsIndex(indexes.SearchIndex, indexes.Indexable):
         self.prepared_data['name_ngram'] = name
         self.prepared_data['user'] = user
         self.prepared_data['is_public'] = is_public
+
+        return self.prepared_data
+
+
+class SentenceCommentsIndex(indexes.SearchIndex, indexes.Indexable):
+    text = indexes.CharField(document=True)
+    id = indexes.IntegerField(model_attr='id')
+    sentence_id = indexes.IntegerField(model_attr='sentence_id')
+    comment_text = indexes.CharField(default='')
+    user = indexes.CharField(default='')
+    created = indexes.DateTimeField(model_attr='created', default=datetime(1,1,1))
+    modified = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
+    hidden = indexes.IntegerField(model_attr='hidden')
+
+    def get_model(self):
+        return SentenceComments
+
+    def get_updated_field(self):
+        return 'modified'
+
+    def index_queryset(self, using=None):
+        return self.get_model().objects.all()
+
+    def prepare(self, object):
+        self.prepared_data = super(SentenceCommentsIndex, self).prepare(object)
+
+        text = object.text
+        user = Users.objects.filter(id=object.user_id)
+        user = user[0] if user else ''
+
+        self.prepared_data['comment_text'] = text
+        self.prepared_data['user'] = user
 
         return self.prepared_data

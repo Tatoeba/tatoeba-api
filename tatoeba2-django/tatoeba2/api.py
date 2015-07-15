@@ -4,7 +4,7 @@ from tastypie.authorization import Authorization
 from .api_base import BaseSearchResource, UCharField, IDPaginator
 from .models import Sentences
 from .search_indexes import (
-    SentencesIndex, TagsIndex, SentencesListsIndex
+    SentencesIndex, TagsIndex, SentencesListsIndex, SentenceCommentsIndex
     )
 from datetime import datetime
 
@@ -92,3 +92,21 @@ for f in SentencesListsSearchResource._meta.index.fields.keys():
     filtering.update({f: SEARCH_FILTERS})
 
 SentencesListsSearchResource._meta.filtering = filtering
+
+
+class SentenceCommentsSearchResource(BaseSearchResource):
+    class Meta:
+        resource_name = 'sentence_comments_search'
+        index = SentenceCommentsIndex()
+        autoquery_fields = [
+            'comment_text', 'user'
+            ]
+        allowed_methods = ['get']
+
+filtering = {'django_id': SEARCH_FILTERS}
+
+for f in SentenceCommentsSearchResource._meta.index.fields.keys():
+    if f == 'text': continue
+    filtering.update({f: SEARCH_FILTERS})
+
+SentenceCommentsSearchResource._meta.filtering = filtering
