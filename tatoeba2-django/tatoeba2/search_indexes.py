@@ -3,7 +3,7 @@ from datetime import datetime
 from .utils import now, stemmer, uclean
 from .models import (
     Sentences, Users, SentencesTranslations, UsersLanguages, Tags,
-    TagsSentences
+    TagsSentences, SentencesLists
     )
 from collections import defaultdict
 
@@ -137,5 +137,40 @@ class TagsIndex(indexes.SearchIndex, indexes.Indexable):
         self.prepared_data['name'] = name
         self.prepared_data['name_ngram'] = name
         self.prepared_data['user'] = user
+
+        return self.prepared_data
+
+
+class SentencesListsIndex(indexes.SearchIndex, indexes.Indexable):
+    text = indexes.CharField(document=True)
+    id = indexes.IntegerField(model_attr='id')
+    name = indexes.CharField(default='')
+    name_ngram = indexes.EdgeNgramField(default='')
+    user = indexes.CharField(default='')
+    is_public = indexes.BooleanField()
+    modified = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
+    created = indexes.DateTimeField(model_attr='created', default=datetime(1,1,1))
+
+    def get_model(self):
+        return SentencesLists
+
+    def get_updated_field(self):
+        return 'modified'
+
+    def index_queryset(self, using=None):
+        return self.get_model().objects.all()
+
+    def prepare(self, object):
+        self.prepared_data = super(SentencesListsIndex, self).prepare(object)
+
+        name = uclean(object.name)
+        user = Users.objects.filter(id=object.user_id)
+        user = user[0] if user else ''
+        is_public = bool(object.is_public)
+
+        self.prepared_data['name'] = name
+        self.prepared_data['name_ngram'] = name
+        self.prepared_data['user'] = user
+        self.prepared_data['is_public'] = is_public
 
         return self.prepared_data

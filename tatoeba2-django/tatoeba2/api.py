@@ -4,7 +4,7 @@ from tastypie.authorization import Authorization
 from .api_base import BaseSearchResource, UCharField, IDPaginator
 from .models import Sentences
 from .search_indexes import (
-    SentencesIndex, TagsIndex
+    SentencesIndex, TagsIndex, SentencesListsIndex
     )
 from datetime import datetime
 
@@ -73,3 +73,22 @@ for f in TagsSearchResource._meta.index.fields.keys():
     filtering.update({f: SEARCH_FILTERS})
 
 TagsSearchResource._meta.filtering = filtering
+
+
+class SentencesListsSearchResource(BaseSearchResource):
+    class Meta:
+        resource_name = 'sentences_lists_search'
+        index = SentencesListsIndex()
+        autoquery_fields = [
+            'name', 'user'
+            ]
+        autocomplete_fields = ['name_ngram']
+        allowed_methods = ['get']
+
+filtering = {'django_id': SEARCH_FILTERS}
+
+for f in SentencesListsSearchResource._meta.index.fields.keys():
+    if f == 'text': continue
+    filtering.update({f: SEARCH_FILTERS})
+
+SentencesListsSearchResource._meta.filtering = filtering
