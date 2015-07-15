@@ -6,6 +6,9 @@ from django.conf import settings
 def now():
     return datetime.utcnow().replace(tzinfo=utc)
 
+def uclean(string):
+    return string.decode('utf-8', 'ignore')
+
 STEMMERS = getattr(settings, 'HAYSTACK_STEMMERS')
 
 TOKENIZERS = getattr(settings, 'HAYSTACK_TOKENIZERS', {})

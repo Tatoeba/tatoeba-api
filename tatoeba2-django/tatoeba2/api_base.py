@@ -3,7 +3,7 @@ from tastypie import fields
 from tastypie.paginator import Paginator
 from tastypie.exceptions import InvalidFilterError, InvalidSortError
 from haystack.query import SearchQuerySet, AutoQuery, SQ
-from .utils import stemmer
+from .utils import stemmer, uclean
 from django.db import connection
 
 
@@ -15,7 +15,7 @@ class UCharField(fields.ApiField):
         if value is None:
             return None
 
-        return value.decode('utf-8', 'ignore')
+        return uclean(value)
 
 
 class IDPaginator(Paginator):
@@ -72,6 +72,7 @@ class SearchOptions(ResourceOptions):
     index = None
     model = None
     autoquery_fields = []
+    autocomplete_fields = []
     stem_fields = []
     max_limit = 100
 
@@ -232,7 +233,9 @@ class BaseSearchResource(Resource):
             for fltr, val in filters.items():
                 query = query & ~SQ(**{fltr: val})
 
-        return self.get_object_list(request).filter(query)
+        result = self.get_object_list(request).filter(query)
+
+        return result
 
     def apply_sort(self, obj_list, sort_expr):
         field_name = sort_expr[1:] if sort_expr.startswith('-') else sort_expr
@@ -266,6 +269,12 @@ class BaseSearchResource(Resource):
         if 'offset' in filters.keys(): del filters['offset']
         if 'limit' in filters.keys(): del filters['limit']
 
+        autocomp_filters = {}
+        for fltr, val in filters.items():
+            if fltr in self._meta.autocomplete_fields:
+                autocomp_filters[fltr] = val
+                del filters[fltr]
+
         for fltr, val in filters.items():
 
             if fltr[0] == '|':
@@ -278,6 +287,10 @@ class BaseSearchResource(Resource):
             del filters[fltr]
 
         result = self.get_object_list(request)
+
+        if autocomp_filters:
+            for fltr, val in autocomp_filters.items():
+                result = result.autocomplete(**{fltr: val})
 
         if and_filters:
             stem_lang = and_filters.get('lang') or ''

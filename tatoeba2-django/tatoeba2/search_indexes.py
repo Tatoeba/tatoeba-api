@@ -1,6 +1,6 @@
 from haystack import indexes
 from datetime import datetime
-from .utils import now, stemmer
+from .utils import now, stemmer, uclean
 from .models import (
     Sentences, Users, SentencesTranslations, UsersLanguages, Tags,
     TagsSentences
@@ -41,12 +41,12 @@ class SentencesIndex(indexes.SearchIndex, indexes.Indexable):
     def prepare(self, object):
         self.prepared_data = super(SentencesIndex, self).prepare(object)
 
-        text = object.text.decode('utf-8', 'ignore')
+        text = uclean(object.text)
         lang = object.lang
         user = Users.objects.filter(id=object.user_id)
         user = user[0] if user else None
         owner = user.username if user else ''
-        owner = owner.decode('utf-8', 'ignore')
+        owner = uclean(owner)
         is_orphan = not bool(owner)
         owner_is_native = bool(
             UsersLanguages.objects.filter(
@@ -61,7 +61,7 @@ class SentencesIndex(indexes.SearchIndex, indexes.Indexable):
                     ).values_list('name', flat=True)
         tags = list(set(tags))
         tags = ' | '.join(tags) if tags else ''
-        tags = tags.decode('utf-8', 'ignore')
+        tags = uclean(tags)
         is_tagged = bool(tags)
         is_unapproved = bool(object.correctness == -1)
         has_audio = bool(object.hasaudio == 'shtooka' or object.hasaudio == 'from_users')
@@ -104,5 +104,38 @@ class SentencesIndex(indexes.SearchIndex, indexes.Indexable):
         self.prepared_data['is_tagged'] = is_tagged
         self.prepared_data['is_unapproved'] = is_unapproved
         self.prepared_data['has_audio'] = has_audio
+
+        return self.prepared_data
+
+
+class TagsIndex(indexes.SearchIndex, indexes.Indexable):
+    text = indexes.CharField(document=True)
+    id = indexes.IntegerField(model_attr='id')
+    name = indexes.CharField(default='')
+    name_ngram = indexes.EdgeNgramField(default='')
+    description = indexes.CharField(default='')
+    user = indexes.CharField(default='')
+    created = indexes.DateTimeField(model_attr='created', default=datetime(1,1,1))
+
+    def get_model(self):
+        return Tags
+
+    def get_updated_field(self):
+        return 'created'
+
+    def index_queryset(self, using=None):
+        return self.get_model().objects.all()
+
+    def prepare(self, object):
+        self.prepared_data = super(TagsIndex, self).prepare(object)
+
+        name = uclean(object.name)
+        description = uclean(object.description) if object.description else ''
+        user = Users.objects.filter(id=object.user_id)
+        user = user[0] if user else ''
+
+        self.prepared_data['name'] = name
+        self.prepared_data['name_ngram'] = name
+        self.prepared_data['user'] = user
 
         return self.prepared_data
