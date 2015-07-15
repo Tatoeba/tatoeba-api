@@ -15,6 +15,28 @@ SEARCH_FILTERS = [
         'gt', 'gte', 'lt', 'lte'
         ]
 
+FILTERS = ['exact', 'in']
+FILTERS_NUM = FILTERS + ['lt', 'lte', 'gt', 'gte', 'range']
+FILTERS_DATE = FILTERS_NUM + ['year', 'month', 'day', 'hour', 'minute']
+
+def set_filters(resource, exclude=[]):
+    filtering = {}
+
+    for f in resource._meta.object_class._meta.fields:
+        if f.name in exclude:
+            continue
+
+        ftype = type(f).__name__
+
+        if ftype == 'CharField':
+            filtering.update({f.name: FILTERS})
+        elif ftype in ('AutoField', 'IntegerField'):
+            filtering.update({f.name: FILTERS_NUM})
+        elif ftype in ('DateTimeField', 'DateField'):
+            filtering.update({f.name: FILTERS_DATE})
+
+    resource._meta.filtering = filtering
+
 
 class SentencesResource(ModelResource):
     created = fields.DateTimeField(attribute='created', default=datetime(1, 1, 1))
@@ -24,16 +46,12 @@ class SentencesResource(ModelResource):
     class Meta:
         queryset = Sentences.objects.all()
         allowed_methods = ['get']
+        excludes = ['dico_id']
         authorization = Authorization()
         paginator_class = IDPaginator
         max_limit = 100
 
-filtering = {}
-
-for f in SentencesResource._meta.object_class._meta.fields:
-    filtering.update({f.name: ALL})
-
-SentencesResource._meta.filtering = filtering
+set_filters(SentencesResource, exclude=['text'])
 
 
 class SentencesSearchResource(BaseSearchResource):
