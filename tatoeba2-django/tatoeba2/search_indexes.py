@@ -3,7 +3,7 @@ from datetime import datetime
 from .utils import now, stemmer, uclean
 from .models import (
     Sentences, Users, SentencesTranslations, UsersLanguages, Tags,
-    TagsSentences, SentencesLists, SentenceComments
+    TagsSentences, SentencesLists, SentenceComments, Wall
     )
 from collections import defaultdict
 
@@ -204,5 +204,37 @@ class SentenceCommentsIndex(indexes.SearchIndex, indexes.Indexable):
 
         self.prepared_data['comment_text'] = text
         self.prepared_data['user'] = user
+
+        return self.prepared_data
+
+
+class WallIndex(indexes.SearchIndex, indexes.Indexable):
+    text = indexes.CharField(document=True)
+    id = indexes.IntegerField(model_attr='id')
+    owner = indexes.CharField(default='')
+    parent_id = indexes.IntegerField(model_attr='parent_id', default=0)
+    date = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
+    title = indexes.CharField(model_attr='title', default='')
+    content = indexes.CharField(model_attr='content', default='')
+    lft = indexes.IntegerField(model_attr='lft', default=0)
+    rght = indexes.IntegerField(model_attr='rght', default=0)
+    modified = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
+
+    def get_model(self):
+        return Wall
+
+    def get_updated_field(self):
+        return 'modified'
+
+    def index_queryset(self, using=None):
+        return self.get_model().objects.filter(id__range=[19233, 19234])
+
+    def prepare(self, object):
+        self.prepared_data = super(WallIndex, self).prepare(object)
+
+        user = Users.objects.filter(id=object.owner)
+        owner = user[0] if user else ''
+
+        self.prepared_data['owner'] = owner
 
         return self.prepared_data

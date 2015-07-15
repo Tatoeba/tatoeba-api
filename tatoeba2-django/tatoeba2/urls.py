@@ -2,7 +2,8 @@ from django.conf.urls import patterns, include, url
 from tastypie.api import Api
 from .api import (
     SentencesResource, SentencesSearchResource, TagsSearchResource,
-    SentencesListsSearchResource, SentenceCommentsSearchResource
+    SentencesListsSearchResource, SentenceCommentsSearchResource,
+    WallSearchResource
     )
 
 
@@ -12,6 +13,7 @@ api.register(SentencesSearchResource())
 api.register(TagsSearchResource())
 api.register(SentencesListsSearchResource())
 api.register(SentenceCommentsSearchResource())
+api.register(WallSearchResource())
 
 urlpatterns = patterns('',
     url(r'^', include(api.urls)),
