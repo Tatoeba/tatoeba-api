@@ -2,10 +2,12 @@ from tastypie import fields
 from tastypie.resources import ModelResource, ALL
 from tastypie.authorization import Authorization
 from .api_base import BaseSearchResource, UCharField, IDPaginator
-from .models import Sentences
+from .models import (
+    Sentences, Tags, TagsSentences, Users
+    )
 from .search_indexes import (
     SentencesIndex, TagsIndex, SentencesListsIndex, SentenceCommentsIndex,
-    WallIndex
+    WallIndex, UsersIndex
     )
 from datetime import datetime
 
@@ -81,6 +83,38 @@ class SentencesSearchResource(BaseSearchResource):
 set_search_filters(SentencesSearchResource)
 
 
+class TagsResource(ModelResource):
+    created = fields.DateTimeField(attribute='created', default=datetime(1, 1, 1))
+    description = UCharField(attribute='description', default='')
+
+    class Meta:
+        queryset = Tags.objects.all()
+        excludes = ['internal_name']
+        allowed_methods = ['get']
+        authorization = Authorization()
+        paginator_class = IDPaginator
+        max_limit = 100
+
+set_filters(TagsResource, exclude=['name', 'description'])
+
+
+class TagsSentencesResource(ModelResource):
+    added_time = fields.DateTimeField(attribute='added_time', default=datetime(1, 1, 1))
+    sentence = fields.ForeignKey('tatoeba2.api.SentencesResource', attribute='sentence')
+    user = fields.ForeignKey('tatoeba2.api.UsersResource', attribute='user')
+
+    class Meta:
+        queryset = TagsSentences.objects.all()
+        resource_name = 'tags_sentences'
+        excludes = []
+        allowed_methods = ['get']
+        authorization = Authorization()
+        paginator_class = IDPaginator
+        max_limit = 100
+
+set_filters(TagsSentencesResource, exclude=['name', 'description'])
+
+
 class TagsSearchResource(BaseSearchResource):
     class Meta:
         resource_name = 'tags_search'
@@ -129,3 +163,30 @@ class WallSearchResource(BaseSearchResource):
         allowed_methods = ['get']
 
 set_search_filters(WallSearchResource)
+
+
+class UsersResource(ModelResource):
+    since = fields.DateTimeField(attribute='since', default=datetime(1, 1, 1))
+    birthday = fields.DateTimeField(attribute='since', default=datetime(1, 1, 1))
+
+    class Meta:
+        queryset = Users.objects.all()
+        excludes = ['password', 'email']
+        allowed_methods = ['get']
+        authorization = Authorization()
+        paginator_class = IDPaginator
+        max_limit = 100
+
+set_filters(UsersResource, exclude=[
+            'name', 'description', 'settings', 'homepage', 'image'
+            ])
+
+
+class UsersSearchResource(BaseSearchResource):
+    class Meta:
+        resource_name = 'users_search'
+        index = UsersIndex()
+        autoquery_fields = []
+        allowed_methods = ['get']
+
+set_search_filters(UsersSearchResource)

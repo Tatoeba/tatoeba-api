@@ -3,7 +3,7 @@ from datetime import datetime
 from .utils import now, stemmer, uclean, limit_string
 from .models import (
     Sentences, Users, SentencesTranslations, UsersLanguages, Tags,
-    TagsSentences, SentencesLists, SentenceComments, Wall
+    TagsSentences, SentencesLists, SentenceComments, Wall, Groups
     )
 from collections import defaultdict
 
@@ -11,7 +11,7 @@ from collections import defaultdict
 class LimCharField(indexes.CharField):
     def convert(self, value):
         if value is None:
-            return none
+            return None
 
         return limit_string(value)
 
@@ -249,5 +249,45 @@ class WallIndex(indexes.SearchIndex, indexes.Indexable):
         owner = user[0] if user else ''
 
         self.prepared_data['owner'] = owner
+
+        return self.prepared_data
+
+
+class UsersIndex(indexes.SearchIndex, indexes.Indexable):
+    text = indexes.CharField(document=True)
+    id = indexes.IntegerField(model_attr='id')
+    username = indexes.CharField(model_attr='username')
+    since = indexes.DateTimeField(model_attr='since', default=datetime(1,1,1))
+    last_time_active = indexes.DateTimeField(default=datetime(1,1,1))
+    level = indexes.IntegerField(model_attr='level')
+    group = indexes.CharField()
+    send_notifications = indexes.BooleanField()
+    name = indexes.CharField(model_attr='name')
+    birthday = indexes.DateTimeField(model_attr='birthday', default=datetime(1,1,1))
+    description = LimCharField(model_attr='description')
+    homepage = indexes.CharField(model_attr='homepage')
+    image = indexes.CharField(model_attr='image')
+    country_id = indexes.CharField(model_attr='country_id', default='')
+    settings = indexes.CharField(model_attr='settings')
+
+    def get_model(self):
+        return Users
+
+    def get_updated_field(self):
+        return 'since'
+
+    def index_queryset(self, using=None):
+        return self.get_model().objects.all()
+
+    def prepare(self, object):
+        self.prepared_data = super(UsersIndex, self).prepare(object)
+
+        group = Groups.objects.get(id=object.group_id).name
+        send_notifications = bool(object.send_notifications)
+        last_time_active = datetime.fromtimestamp(object.last_time_active)
+
+        self.prepared_data['group'] = group
+        self.prepared_data['send_notifications'] = send_notifications
+        self.prepared_data['last_time_active'] = last_time_active
 
         return self.prepared_data

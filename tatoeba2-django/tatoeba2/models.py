@@ -266,8 +266,8 @@ class Tags(models.Model):
 class TagsSentences(models.Model):
     id = models.AutoField(primary_key=True)
     tag_id = models.IntegerField()
-    user_id = models.IntegerField(blank=True, null=True)
-    sentence_id = models.IntegerField(blank=True, null=True)
+    user = models.ForeignKey('Users')
+    sentence = models.ForeignKey('Sentences')
     added_time = models.DateTimeField(blank=True, null=True)
     class Meta:
         db_table = 'tags_sentences'

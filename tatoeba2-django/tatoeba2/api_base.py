@@ -5,6 +5,7 @@ from tastypie.exceptions import InvalidFilterError, InvalidSortError
 from haystack.query import SearchQuerySet, AutoQuery, SQ
 from .utils import stemmer, uclean
 from django.db import connection
+from django.core.urlresolvers import reverse
 
 
 class UCharField(fields.ApiField):
