@@ -1,6 +1,7 @@
 from pytz import UTC as utc
 from datetime import datetime
 from django.conf import settings
+import re
 
 
 def now():
@@ -8,6 +9,13 @@ def now():
 
 def uclean(string):
     return string.decode('utf-8', 'ignore')
+
+LIMIT_RE = re.compile(r'[^\s]{240,}')
+
+def limit_string(string):
+    if LIMIT_RE.match(string):
+        string = LIMIT_RE.sub('<stripped_token>', string)
+    return string
 
 STEMMERS = getattr(settings, 'HAYSTACK_STEMMERS')
 

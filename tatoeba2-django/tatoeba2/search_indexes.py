@@ -1,11 +1,19 @@
 from haystack import indexes
 from datetime import datetime
-from .utils import now, stemmer, uclean
+from .utils import now, stemmer, uclean, limit_string
 from .models import (
     Sentences, Users, SentencesTranslations, UsersLanguages, Tags,
     TagsSentences, SentencesLists, SentenceComments, Wall
     )
 from collections import defaultdict
+
+
+class LimCharField(indexes.CharField):
+    def convert(self, value):
+        if value is None:
+            return none
+
+        return limit_string(value)
 
 
 class SentencesIndex(indexes.SearchIndex, indexes.Indexable):
@@ -78,6 +86,13 @@ class SentencesIndex(indexes.SearchIndex, indexes.Indexable):
             for prop in direct_props:
                 for key in ('user_id', 'lang', 'correctness', 'hasaudio'):
                     props[key].add(getattr(prop, key))
+
+            if None in props['lang']:
+                props['lang'].remove(None)
+                props['lang'].add('und')
+            if '' in props['lang']:
+                props['lang'].remove('')
+                props['lang'].add('und')
 
             trans_langs = ' | '.join(list(props['lang']))
             trans_is_unapproved = -1 in props['correctness']
@@ -180,7 +195,7 @@ class SentenceCommentsIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True)
     id = indexes.IntegerField(model_attr='id')
     sentence_id = indexes.IntegerField(model_attr='sentence_id')
-    comment_text = indexes.CharField(default='')
+    comment_text = LimCharField(model_attr='text', default='')
     user = indexes.CharField(default='')
     created = indexes.DateTimeField(model_attr='created', default=datetime(1,1,1))
     modified = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
@@ -198,11 +213,9 @@ class SentenceCommentsIndex(indexes.SearchIndex, indexes.Indexable):
     def prepare(self, object):
         self.prepared_data = super(SentenceCommentsIndex, self).prepare(object)
 
-        text = object.text
         user = Users.objects.filter(id=object.user_id)
         user = user[0] if user else ''
 
-        self.prepared_data['comment_text'] = text
         self.prepared_data['user'] = user
 
         return self.prepared_data
@@ -215,7 +228,7 @@ class WallIndex(indexes.SearchIndex, indexes.Indexable):
     parent_id = indexes.IntegerField(model_attr='parent_id', default=0)
     date = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
     title = indexes.CharField(model_attr='title', default='')
-    content = indexes.CharField(model_attr='content', default='')
+    content = LimCharField(model_attr='content', default='')
     lft = indexes.IntegerField(model_attr='lft', default=0)
     rght = indexes.IntegerField(model_attr='rght', default=0)
     modified = indexes.DateTimeField(model_attr='modified', default=datetime(1,1,1))
@@ -227,7 +240,7 @@ class WallIndex(indexes.SearchIndex, indexes.Indexable):
         return 'modified'
 
     def index_queryset(self, using=None):
-        return self.get_model().objects.filter(id__range=[19233, 19234])
+        return self.get_model().objects.all()
 
     def prepare(self, object):
         self.prepared_data = super(WallIndex, self).prepare(object)
