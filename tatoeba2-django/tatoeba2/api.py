@@ -37,6 +37,18 @@ def set_filters(resource, exclude=[]):
 
     resource._meta.filtering = filtering
 
+def set_search_filters(resource, exclude=[]):
+    exclude += ['text']
+    filtering = {}
+    filtering.update({'django_id': SEARCH_FILTERS})
+
+    for f in resource._meta.index.fields.keys():
+        if f in exclude:
+            continue
+        filtering.update({f: SEARCH_FILTERS})
+
+    resource._meta.filtering = filtering
+
 
 class SentencesResource(ModelResource):
     created = fields.DateTimeField(attribute='created', default=datetime(1, 1, 1))
@@ -66,13 +78,7 @@ class SentencesSearchResource(BaseSearchResource):
         stem_fields = ['sentence_text_stemmed']
         allowed_methods = ['get']
 
-filtering = {'django_id': SEARCH_FILTERS}
-
-for f in SentencesSearchResource._meta.index.fields.keys():
-    if f == 'text': continue
-    filtering.update({f: SEARCH_FILTERS})
-
-SentencesSearchResource._meta.filtering = filtering
+set_search_filters(SentencesSearchResource)
 
 
 class TagsSearchResource(BaseSearchResource):
@@ -85,13 +91,7 @@ class TagsSearchResource(BaseSearchResource):
         autocomplete_fields = ['name_ngram']
         allowed_methods = ['get']
 
-filtering = {'django_id': SEARCH_FILTERS}
-
-for f in TagsSearchResource._meta.index.fields.keys():
-    if f == 'text': continue
-    filtering.update({f: SEARCH_FILTERS})
-
-TagsSearchResource._meta.filtering = filtering
+set_search_filters(TagsSearchResource)
 
 
 class SentencesListsSearchResource(BaseSearchResource):
@@ -104,13 +104,7 @@ class SentencesListsSearchResource(BaseSearchResource):
         autocomplete_fields = ['name_ngram']
         allowed_methods = ['get']
 
-filtering = {'django_id': SEARCH_FILTERS}
-
-for f in SentencesListsSearchResource._meta.index.fields.keys():
-    if f == 'text': continue
-    filtering.update({f: SEARCH_FILTERS})
-
-SentencesListsSearchResource._meta.filtering = filtering
+set_search_filters(SentencesListsSearchResource)
 
 
 class SentenceCommentsSearchResource(BaseSearchResource):
@@ -122,13 +116,7 @@ class SentenceCommentsSearchResource(BaseSearchResource):
             ]
         allowed_methods = ['get']
 
-filtering = {'django_id': SEARCH_FILTERS}
-
-for f in SentenceCommentsSearchResource._meta.index.fields.keys():
-    if f == 'text': continue
-    filtering.update({f: SEARCH_FILTERS})
-
-SentenceCommentsSearchResource._meta.filtering = filtering
+set_search_filters(SentenceCommentsSearchResource)
 
 
 class WallSearchResource(BaseSearchResource):
@@ -140,10 +128,4 @@ class WallSearchResource(BaseSearchResource):
             ]
         allowed_methods = ['get']
 
-filtering = {'django_id': SEARCH_FILTERS}
-
-for f in WallSearchResource._meta.index.fields.keys():
-    if f == 'text': continue
-    filtering.update({f: SEARCH_FILTERS})
-
-WallSearchResource._meta.filtering = filtering
+set_search_filters(WallSearchResource)
