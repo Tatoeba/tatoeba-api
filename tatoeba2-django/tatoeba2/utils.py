@@ -8,12 +8,17 @@ def now():
     return datetime.utcnow().replace(tzinfo=utc)
 
 def uclean(string):
-    return string.decode('utf-8', 'ignore')
+    if not isinstance(string, unicode):
+        string = string.decode('utf-8', 'ignore')
+    return string
 
-LIMIT_RE = re.compile(r'[^\s]{240,}')
+LIMIT_RE = re.compile(r'[^\s]{220,}')
+CJK_RE = re.compile(ur'([\u4e00-\ufaff])')
 
 def limit_string(string):
-    if LIMIT_RE.match(string):
+    if CJK_RE.search(string):
+        string = CJK_RE.sub(r'\1 ', string)
+    if LIMIT_RE.search(string):
         string = LIMIT_RE.sub('<stripped_token>', string)
     return string
 
