@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.py~
 
 # C extensions
 *.so
@@ -53,3 +54,5 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Xapian
+xapian_index/
